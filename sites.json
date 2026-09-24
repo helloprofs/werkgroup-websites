@@ -1,0 +1,30 @@
+{
+  "werkgroup": {
+    "naam": "Werkgroup",
+    "repo": "https://github.com/helloprofs/werkgroup-website.git",
+    "domein": "werkgroup.nl",
+    "productieBranch": "main",
+    "check": "npm run check"
+  },
+  "werkreturn": {
+    "naam": "Werkreturn",
+    "repo": "https://github.com/helloprofs/website-werkreturn.git",
+    "domein": "werkreturn.nl",
+    "productieBranch": "main",
+    "check": "npm run check"
+  },
+  "werkassist": {
+    "naam": "Werkassist",
+    "repo": "https://github.com/helloprofs/werkassist-website.git",
+    "domein": "werkassist.nl",
+    "productieBranch": "main",
+    "check": "npm run check"
+  },
+  "werkverzuim": {
+    "naam": "Werkverzuim",
+    "repo": "https://github.com/helloprofs/website-werkverzuim.git",
+    "domein": "verzuimopwerk.nl",
+    "productieBranch": "main",
+    "check": "npm run check"
+  }
+}
