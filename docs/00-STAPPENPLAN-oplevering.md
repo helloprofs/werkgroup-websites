@@ -5,12 +5,12 @@
 
 ## De vier sites
 
-| Label | Status nu | Codebase op deze Mac | Repo |
+| Label | Status nu | Lokaal (via `bin/site open`) | Repo |
 |---|---|---|---|
-| Werkverzuim | **Live** (bestaande site) | `Werkverzuim website/website-werkverzuim` | helloprofs/website-werkverzuim |
-| Werkreturn | Vercel klaar, WordPress nog live | `Werkreturn/Werkreturn website/website-werkreturn` | helloprofs/website-werkreturn |
-| Werkgroup | Vercel klaar, WordPress nog live | `Werkgroup/Werkgroup-website` | helloprofs/werkgroup-website |
-| Werkassist | Vercel klaar, WordPress nog live | `Werkassist/werkassist-website` | helloprofs/werkassist-website |
+| Werkverzuim | **Live** (bestaande site) | `repos/werkverzuim` | helloprofs/website-werkverzuim |
+| Werkreturn | Vercel klaar, WordPress nog live | `repos/werkreturn` | helloprofs/website-werkreturn |
+| Werkgroup | Vercel klaar, WordPress nog live | `repos/werkgroup` | helloprofs/werkgroup-website |
+| Werkassist | Vercel klaar, WordPress nog live | `repos/werkassist` | helloprofs/werkassist-website |
 
 Punten 1 t/m 6 en 8 gelden voor **Werkreturn, Werkgroup, Werkassist**.
 Voor **Werkverzuim** geldt alleen het viewport-probleem — die site staat al
@@ -26,6 +26,12 @@ drie repo's, dan per site (Werkreturn → Werkgroup → Werkassist) de stappen
 ---
 
 ## Stap 0 — Mappenstructuur — **afgerond**
+
+> **Bijgewerkt 2026-09-24:** de map is nu een hub-repo (zie
+> `CLAUDE.md`). Clones staan niet meer vast in labelmappen maar worden met
+> `bin/site open <site>` in `repos/<site>` gezet en na afloop opgeruimd. Paden
+> hieronder als `Werkgroup/Werkgroup-website/...` lees je als `repos/werkgroup/...`.
+> Geheimen staan in `_lokaal/`. Zie `docs/overstap-2026-09-24.md`.
 
 Alles staat onder `Werkgroup websites overkoepelend/`. `git status` werkt in
 alle vier de repo's, node_modules overleefde de verplaatsing. Werkverzuim is
