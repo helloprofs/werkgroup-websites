@@ -1,0 +1,17 @@
+# Lokale clones en geheimen
+repos/
+_lokaal/
+.env*
+client_secret*.json
+token.json
+
+# Build en systeem
+node_modules/
+.DS_Store
+__pycache__/
+
+# Oude labelmappen (verdwijnen bij de overstap)
+/Werkgroup/
+/Werkreturn/
+/Werkassist/
+/Werkverzuim website/
