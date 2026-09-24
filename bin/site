@@ -71,17 +71,30 @@ cmd_install() {
   stempel "$l"
 }
 
+# Genegeerde bestanden die weg mogen zonder te vragen (opnieuw te maken).
+WEGWERP='^((.*/)?node_modules/|\.next/|.*\.tsbuildinfo$|(.*/)?\.DS_Store$|next-env\.d\.ts$|\.env\.local$)'
+
 # Print wat opruimen in de weg staat; lege uitvoer = veilig.
 openstaand() {
-  local l=$1 d s; d=$(dir_van "$l")
-  git -C "$d" fetch --prune --quiet 2>/dev/null \
+  local l=$1 d s gd f; d=$(dir_van "$l")
+  gd=$(git -C "$d" rev-parse --absolute-git-dir)
+  git -C "$d" fetch origin --prune --quiet 2>/dev/null \
     || echo "- fetch mislukt (offline?): push-status niet te bevestigen"
+  git -C "$d" symbolic-ref -q HEAD >/dev/null \
+    || echo "- HEAD is detached: commits buiten een branch zouden verloren gaan"
+  for f in rebase-merge rebase-apply MERGE_HEAD CHERRY_PICK_HEAD REVERT_HEAD BISECT_LOG; do
+    [ ! -e "$gd/$f" ] || echo "- er is een git-bewerking bezig ($f): eerst afronden of afbreken"
+  done
+  s=$(git -C "$d" worktree list | sed 1d)
+  [ -z "$s" ] || printf -- '- extra worktree(s):\n%s\n' "$(echo "$s" | sed 's/^/    /')"
   s=$(git -C "$d" status --porcelain)
   [ -z "$s" ] || printf -- '- niet-gecommitte of untracked bestanden:\n%s\n' "$(echo "$s" | sed 's/^/    /')"
+  s=$(git -C "$d" status --porcelain --ignored=matching | sed -n 's/^!! //p' | grep -vE "$WEGWERP" || true)
+  [ -z "$s" ] || printf -- '- genegeerde bestanden die verloren zouden gaan (verplaats of verwijder ze bewust):\n%s\n' "$(echo "$s" | sed 's/^/    /')"
   s=$(git -C "$d" stash list)
   [ -z "$s" ] || printf -- '- stash:\n%s\n' "$(echo "$s" | sed 's/^/    /')"
-  s=$(git -C "$d" log --branches --not --remotes --format='    %h %s')
-  [ -z "$s" ] || printf -- '- ongepushte commits:\n%s\n' "$s"
+  s=$(git -C "$d" log --branches --tags HEAD --not --remotes --format='    %h %s')
+  [ -z "$s" ] || printf -- '- ongepushte commits (na squash-merge: branch met gh pr view gecontroleerd weggooien):\n%s\n' "$s"
   if [ -f "$d/.env.local" ] && ! cmp -s "$d/.env.local" "$LOKAAL/$l.env.local"; then
     echo "- .env.local staat niet (gelijk) in _lokaal/$l.env.local; eerst: cp \"$d/.env.local\" \"$LOKAAL/$l.env.local\""
   fi
@@ -91,10 +104,13 @@ cmd_close() {
   check_label "${1:-}"
   local l=$1 d p; d=$(dir_van "$l")
   [ -d "$d" ] || { echo "$l staat niet lokaal"; return 0; }
-  if [ "${2:-}" = "--licht" ]; then
-    rm -rf "$d/node_modules" "$d/.next"
-    echo "$l: node_modules en .next verwijderd"; return 0
-  fi
+  case "${2:-}" in
+    "") ;;
+    --licht)
+      rm -rf "$d/node_modules" "$d/.next"
+      echo "$l: node_modules en .next verwijderd"; return 0 ;;
+    *) fout "onbekende optie '$2' (bedoel je --licht?)" ;;
+  esac
   [ -d "$d/.git" ] || fout "$d is geen git-repo; ruim handmatig op"
   p=$(openstaand "$l")
   if [ -n "$p" ]; then

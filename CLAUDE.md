@@ -31,8 +31,16 @@ Details per site: `sites.json`. Productie deployt vanaf `main` via Vercel.
 3. Werk binnen die repo en volg **de eigen AGENTS.md/CLAUDE.md van die repo**.
 4. Lokaal draaien of bouwen nodig? `bin/site install <site>`, dan `npm run dev`.
 5. Committen op een branch, pushen, PR — nooit direct op `main`.
-6. Klaar? Stel `bin/site close <site>` voor. Die weigert als er iets niet
-   gepusht is; los dat op, forceer nooit met `rm -rf`.
+6. Klaar? Stel `bin/site close <site>` voor. Die weigert bij alles wat
+   verloren zou gaan (ongecommit, ongepusht, stash, detached HEAD, extra
+   worktrees, genegeerde bestanden zoals `shots/`, `.env.local` niet in
+   `_lokaal/`) en noemt wat er openstaat. Los dat bewust op; forceer nooit met
+   `rm -rf`.
+   - Branch na een squash-merge nog "ongepusht"? Controleer met
+     `gh pr view <branch>` dat hij gemerged is, dan `git branch -D <branch>`.
+
+`bin/site` staat in de hub-root; zit je in `repos/<site>`, gebruik dan
+`"$CLAUDE_PROJECT_DIR"/bin/site`.
 
 Alleen een tekstwijziging zonder lokaal te kijken? Dan kan het ook in een
 Claude Code-websessie (claude.ai/code) direct op de site-repo.
