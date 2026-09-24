@@ -69,13 +69,13 @@ Per site controleren en scoren:
 
 ---
 
-## Stap 2 — Redirects naast de oude URL-inventarisatie
+## Stap 2 — Redirects naast de oude URL-inventarisatie — **afgerond** (bevestigd 2026-09-24)
 
 **Waar:** VS Code, per repo. **Sites:** Werkreturn, Werkgroup, Werkassist.
 
 Bronmateriaal dat er al ligt:
-- `Werkassist/batch6-oude-urls.csv`
-- `Werkgroup/Werkgroup-redirectinventarisatie-2026-09-15/`
+- `Werkassist/batch6-oude-urls.csv` (nu `_lokaal/bronmateriaal/werkassist/`)
+- redirectinventarisatie Werkgroup 15-09 (opgeruimd; staat in de git-geschiedenis van de hub)
 - `Werkgroup/Werkgroup-website/outputs/werkverzuim-sitemap-redirects-2026-09-15/`
 - Redirects staan in `next.config.ts` (Werkassist: 21 regels, Werkgroup: 44) en deels in `middleware.ts`
 

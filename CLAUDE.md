@@ -14,10 +14,8 @@ wijzigingen aan een site commit en push je altijd binnen `repos/<site>`.
 | `bin/site` | script: sites ophalen, status, veilig opruimen | ja |
 | `sites.json` | repo, domein en checkcommando per site | ja |
 | `repos/<site>/` | lokale clone van een site, alleen zolang je eraan werkt | nee (eigen repo) |
-| `_lokaal/` | geheimen (`<site>.env.local`, Google-secrets), bronmateriaal (`_lokaal/bronmateriaal/<site>/`: foto's, voorwaarden, webcopy), bundles met oude stashes | nee |
-| `docs/` | stappenplan oplevering, overstaplog, `archief/` met oude werkdocs | ja |
-| `prompts/` | agent-prompts; `prompts/archief/` oude start- en batchprompts | ja |
-| `link-analyse/` | los hulpproject (crawler); `npm ci` als je het nodig hebt | ja |
+| `_lokaal/` | geheimen (`<site>.env.local`, Google-API-scripts en -tokens), bronmateriaal (`_lokaal/bronmateriaal/<site>/`: foto's, voorwaarden, webcopy), bundles met oude stashes | nee |
+| `docs/` | stappenplan oplevering, overstaplog (archief-branches) | ja |
 | `tests/site.test.sh` | tests voor `bin/site` | ja |
 
 Staat `repos/` leeg? Dat is normaal: er wordt nu aan geen enkele site gewerkt.
