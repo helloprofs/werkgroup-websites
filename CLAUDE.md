@@ -3,6 +3,25 @@
 Vanuit deze map werk je aan de vier labelsites. De code staat **niet** permanent
 lokaal: haal een site binnen als je hem nodig hebt en ruim hem daarna op.
 
+Deze map is zelf een repo (`helloprofs/werkgroup-websites`) met alleen de
+werkwijze eromheen — **geen websitecode**. Commits hier raken de sites niet;
+wijzigingen aan een site commit en push je altijd binnen `repos/<site>`.
+
+## Hoe de map in elkaar zit
+
+| Pad | Wat | In git? |
+|---|---|---|
+| `bin/site` | script: sites ophalen, status, veilig opruimen | ja |
+| `sites.json` | repo, domein en checkcommando per site | ja |
+| `repos/<site>/` | lokale clone van een site, alleen zolang je eraan werkt | nee (eigen repo) |
+| `_lokaal/` | geheimen (`<site>.env.local`, Google-secrets), bronmateriaal (`_lokaal/bronmateriaal/<site>/`: foto's, voorwaarden, webcopy), bundles met oude stashes | nee |
+| `docs/` | stappenplan oplevering, overstaplog, `archief/` met oude werkdocs | ja |
+| `prompts/` | agent-prompts; `prompts/archief/` oude start- en batchprompts | ja |
+| `link-analyse/` | los hulpproject (crawler); `npm ci` als je het nodig hebt | ja |
+| `tests/site.test.sh` | tests voor `bin/site` | ja |
+
+Staat `repos/` leeg? Dat is normaal: er wordt nu aan geen enkele site gewerkt.
+
 ## De sites
 
 | Site | Domein | Repo | Lokaal pad |
@@ -27,10 +46,17 @@ Details per site: `sites.json`. Productie deployt vanaf `main` via Vercel.
 ## Werkwijze
 
 1. Bepaal welke site(s) het betreft.
-2. `bin/site open <site> [branch]` — clonet of haalt bij; print het pad.
-3. Werk binnen die repo en volg **de eigen AGENTS.md/CLAUDE.md van die repo**.
+2. `bin/site open <site>` — clonet, of haalt bij en werkt de huidige branch
+   bij (alleen fast-forward, alleen als er geen lokale wijzigingen zijn); print
+   het pad. Meldt hij dat hij niet kon bijwerken, los dat eerst op.
+3. **Nieuwe wijziging = nieuwe branch vanaf de actuele `main`:**
+   `git switch -c <korte-naam> origin/main` (na `bin/site open`, dus na een
+   fetch). Nooit verder bouwen op een oude branch uit een vorige klus — zo
+   voorkom je conflicten met werk dat intussen live is gegaan.
+   Werk binnen die repo en volg **de eigen AGENTS.md/CLAUDE.md van die repo**.
 4. Lokaal draaien of bouwen nodig? `bin/site install <site>`, dan `npm run dev`.
-5. Committen op een branch, pushen, PR — nooit direct op `main`.
+5. Committen op die branch, pushen, PR — nooit direct op `main`. Is `main`
+   intussen verder? `git fetch && git rebase origin/main` vóór de PR.
 6. Klaar? Stel `bin/site close <site>` voor. Die weigert bij alles wat
    verloren zou gaan (ongecommit, ongepusht, stash, detached HEAD, extra
    worktrees, genegeerde bestanden zoals `shots/`, `.env.local` niet in

@@ -35,6 +35,12 @@ check open_kloont             bash -c '"$0" open test && [ -f "$1/README.md" ]' 
 (cd "$T/seed" && git switch -q main && echo 2 >> README.md && git commit -qam twee && git push -q origin main)
 check open_fetcht             bash -c '"$0" open test && [ "$(git -C "$1" rev-parse origin/main)" = "$(git -C "$2" rev-parse main)" ]' "$SITE" "$D" "$T/seed"
 check open_branch             bash -c '"$0" open test feature && [ "$(git -C "$1" branch --show-current)" = feature ]' "$SITE" "$D"
+(cd "$T/seed" && git switch -q feature && echo nieuw >> f.txt && git commit -qam nieuw && git push -q origin feature)
+check open_werkt_branch_bij   bash -c '"$0" open test && [ "$(git -C "$1" rev-parse HEAD)" = "$(git -C "$2" rev-parse feature)" ]' "$SITE" "$D" "$T/seed"
+(cd "$T/seed" && echo nog >> f.txt && git commit -qam nog && git push -q origin feature)
+echo lokaal >> "$D/README.md"
+check open_laat_wijzigingen_staan bash -c '"$0" open test && grep -q lokaal "$1/README.md" && [ "$(git -C "$1" rev-parse HEAD)" != "$(git -C "$2" rev-parse feature)" ]' "$SITE" "$D" "$T/seed"
+git -C "$D" checkout -q -- README.md && git -C "$D" merge -q --ff-only origin/feature
 check status_toont_branch     bash -c '"$0" status | grep test | grep -q feature' "$SITE"
 
 touch "$D/los.txt"

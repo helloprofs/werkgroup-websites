@@ -52,6 +52,15 @@ cmd_open() {
     git clone --quiet --filter=blob:none "$(veld "$l" repo)" "$d"
   fi
   if [ -n "$branch" ]; then git -C "$d" switch --quiet "$branch"; fi
+  # Huidige branch bijwerken, zodat je nooit op een verouderde versie verder
+  # werkt. Alleen fast-forward en alleen zonder lokale wijzigingen.
+  if git -C "$d" rev-parse -q --verify '@{u}' >/dev/null 2>&1; then
+    if [ -n "$(git -C "$d" status --porcelain)" ]; then
+      echo "site: lokale wijzigingen in $l — branch niet bijgewerkt" >&2
+    elif ! git -C "$d" merge --ff-only --quiet '@{u}' 2>/dev/null; then
+      echo "site: $(git -C "$d" branch --show-current) is uiteengelopen van de remote — niet bijgewerkt" >&2
+    fi
+  fi
   stempel "$l"
   echo "$d"
 }
