@@ -1,0 +1,157 @@
+#!/usr/bin/env bash
+# site — lokale clones van de Werk-websites openen, bekijken en veilig opruimen.
+# Zie CLAUDE.md in de hub voor de werkwijze.
+set -euo pipefail
+
+SITE_HOME="${SITE_HOME:-$(cd "$(dirname "$0")/.." && pwd)}"
+SITES_JSON="$SITE_HOME/sites.json"
+REPOS="$SITE_HOME/repos"
+STAMPS="$REPOS/.gebruikt"
+LOKAAL="$SITE_HOME/_lokaal"
+STALE_DAGEN="${SITE_STALE_DAGEN:-7}"
+
+fout() { echo "site: $*" >&2; exit 1; }
+
+command -v jq  >/dev/null || fout "jq ontbreekt (brew install jq)"
+command -v git >/dev/null || fout "git ontbreekt"
+[ -f "$SITES_JSON" ] || fout "sites.json niet gevonden in $SITE_HOME"
+
+labels() { jq -r 'keys[]' "$SITES_JSON"; }
+veld()   { jq -r --arg l "$1" --arg v "$2" '.[$l][$v] // empty' "$SITES_JSON"; }
+
+check_label() {
+  [ -n "${1:-}" ] || fout "geef een site op: $(labels | tr '\n' ' ')"
+  jq -e --arg l "$1" 'has($l)' "$SITES_JSON" >/dev/null \
+    || fout "onbekende site '$1'. Geldig: $(labels | tr '\n' ' ')"
+}
+
+dir_van()  { echo "$REPOS/$1"; }
+stempel()  { mkdir -p "$STAMPS"; touch "$STAMPS/$1"; }
+mtime()    { stat -f %m "$1" 2>/dev/null || echo 0; }
+grootte()  { du -sh "$1" 2>/dev/null | cut -f1; }
+dagen_geleden() { echo $(( ( $(date +%s) - $1 ) / 86400 )); }
+
+laatst_gebruikt() {
+  local d a b; d=$(dir_van "$1")
+  a=$(mtime "$STAMPS/$1"); b=$(mtime "$d/.git/logs/HEAD")
+  if [ "$a" -gt "$b" ]; then echo "$a"; else echo "$b"; fi
+}
+
+cmd_list() {
+  jq -r 'to_entries[] | "\(.key)\t\(.value.domein // "-")\t\(.value.repo)"' "$SITES_JSON" \
+    | column -t -s $'\t'
+}
+
+cmd_open() {
+  check_label "${1:-}"
+  local l=$1 branch=${2:-} d; d=$(dir_van "$l")
+  if [ -d "$d/.git" ]; then
+    git -C "$d" fetch --prune --quiet
+  else
+    mkdir -p "$REPOS"
+    git clone --quiet --filter=blob:none "$(veld "$l" repo)" "$d"
+  fi
+  if [ -n "$branch" ]; then git -C "$d" switch --quiet "$branch"; fi
+  stempel "$l"
+  echo "$d"
+}
+
+cmd_install() {
+  check_label "${1:-}"
+  local l=$1 d; d=$(dir_van "$l")
+  [ -d "$d/.git" ] || fout "$l staat niet lokaal; eerst: bin/site open $l"
+  (cd "$d" && npm ci)
+  if [ ! -f "$d/.env.local" ]; then
+    if [ -f "$LOKAAL/$l.env.local" ]; then
+      cp "$LOKAAL/$l.env.local" "$d/.env.local"; echo ".env.local gekopieerd uit _lokaal/"
+    else
+      echo "Let op: geen .env.local. Haal op met: cd \"$d\" && vercel env pull .env.local"
+    fi
+  fi
+  stempel "$l"
+}
+
+# Print wat opruimen in de weg staat; lege uitvoer = veilig.
+openstaand() {
+  local l=$1 d s; d=$(dir_van "$l")
+  git -C "$d" fetch --prune --quiet 2>/dev/null \
+    || echo "- fetch mislukt (offline?): push-status niet te bevestigen"
+  s=$(git -C "$d" status --porcelain)
+  [ -z "$s" ] || printf -- '- niet-gecommitte of untracked bestanden:\n%s\n' "$(echo "$s" | sed 's/^/    /')"
+  s=$(git -C "$d" stash list)
+  [ -z "$s" ] || printf -- '- stash:\n%s\n' "$(echo "$s" | sed 's/^/    /')"
+  s=$(git -C "$d" log --branches --not --remotes --format='    %h %s')
+  [ -z "$s" ] || printf -- '- ongepushte commits:\n%s\n' "$s"
+  if [ -f "$d/.env.local" ] && ! cmp -s "$d/.env.local" "$LOKAAL/$l.env.local"; then
+    echo "- .env.local staat niet (gelijk) in _lokaal/$l.env.local; eerst: cp \"$d/.env.local\" \"$LOKAAL/$l.env.local\""
+  fi
+}
+
+cmd_close() {
+  check_label "${1:-}"
+  local l=$1 d p; d=$(dir_van "$l")
+  [ -d "$d" ] || { echo "$l staat niet lokaal"; return 0; }
+  if [ "${2:-}" = "--licht" ]; then
+    rm -rf "$d/node_modules" "$d/.next"
+    echo "$l: node_modules en .next verwijderd"; return 0
+  fi
+  [ -d "$d/.git" ] || fout "$d is geen git-repo; ruim handmatig op"
+  p=$(openstaand "$l")
+  if [ -n "$p" ]; then
+    { echo "$l NIET verwijderd:"; echo "$p"; } >&2
+    exit 2
+  fi
+  rm -rf "$d" "$STAMPS/$l"
+  echo "$l verwijderd"
+}
+
+status_regel() {
+  local l=$1 d; d=$(dir_van "$l")
+  if [ ! -d "$d/.git" ]; then printf '%s\t-\t-\t-\t-\t-\t-\n' "$l"; return; fi
+  printf '%s\t%s\t%s\t%s\t%s\t%sd\t%s\n' "$l" \
+    "$(git -C "$d" branch --show-current)" \
+    "$(git -C "$d" status --porcelain | wc -l | tr -d ' ')" \
+    "$(git -C "$d" rev-list --count --branches --not --remotes)" \
+    "$(git -C "$d" stash list | wc -l | tr -d ' ')" \
+    "$(dagen_geleden "$(laatst_gebruikt "$l")")" \
+    "$(grootte "$d")"
+}
+
+cmd_stale() {
+  local l d dg
+  for l in $(labels); do
+    d=$(dir_van "$l"); [ -d "$d/.git" ] || continue
+    dg=$(dagen_geleden "$(laatst_gebruikt "$l")")
+    [ "$dg" -ge "$STALE_DAGEN" ] || continue
+    echo "site: $l staat lokaal en is $dg dagen niet gebruikt ($(grootte "$d")). Opruimen: bin/site close $l (of: bin/site close $l --licht)"
+  done
+}
+
+cmd_status() {
+  if [ "${1:-}" = "--stale" ]; then cmd_stale; return; fi
+  local lijst l
+  if [ -n "${1:-}" ]; then check_label "$1"; lijst=$1; else lijst=$(labels); fi
+  {
+    printf 'site\tbranch\tgewijzigd\tongepusht\tstash\tgebruikt\tgrootte\n'
+    for l in $lijst; do status_regel "$l"; done
+  } | column -t -s $'\t'
+}
+
+case "${1:-help}" in
+  list)    cmd_list ;;
+  open)    shift; cmd_open "$@" ;;
+  install) shift; cmd_install "$@" ;;
+  close)   shift; cmd_close "$@" ;;
+  status)  shift; cmd_status "$@" ;;
+  *) cat <<'EOF'
+gebruik: bin/site <commando>
+  list                       sites, domeinen en repo's
+  open <site> [branch]       clone (of fetch als hij er al staat); print het pad
+  install <site>             npm ci, en .env.local uit _lokaal/ als die er is
+  close <site>               verwijder de clone — alleen als alles gecommit en gepusht is
+  close <site> --licht       verwijder alleen node_modules en .next
+  status [<site>]            overzicht per site
+  status --stale             sites die 7+ dagen niet gebruikt zijn
+EOF
+  ;;
+esac
